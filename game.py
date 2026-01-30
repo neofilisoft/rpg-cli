@@ -47,6 +47,153 @@ def print_separator():
     """เส้นคั่น"""
     print("="*50)
 
+def get_save_slots():
+    """ตรวจสอบสล็อตเซฟที่มีอยู่"""
+    save_slots = []
+    for i in range(3):
+        if os.path.exists(f"save{i}.json"):
+            save_slots.append(i)
+    return save_slots
+
+def save_game(player, enemies_defeated):
+    """บันทึกเกม"""
+    clear_screen()
+    print(f"{Colors.BOLD}=== บันทึกเกม ==={Colors.END}")
+    
+    save_slots = get_save_slots()
+    
+    if len(save_slots) < 3:
+        print(f"\n{Colors.CYAN}มีสล็อตเซฟว่างอยู่:{Colors.END}")
+        for i in range(3):
+            if i not in save_slots:
+                print(f"{i+1}. สร้างเซฟใหม่ในสล็อต {i+1}")
+    
+    if save_slots:
+        print(f"\n{Colors.YELLOW}สล็อตเซฟที่มีอยู่:{Colors.END}")
+        for slot in save_slots:
+            try:
+                with open(f"save{slot}.json", "r", encoding='utf-8') as f:
+                    data = json.load(f)
+                    print(f"{slot+1}. เซฟสล็อต {slot+1}: {data['player']['name']} ระดับ {data['player']['level']}")
+            except:
+                print(f"{slot+1}. เซฟสล็อต {slot+1}: ไม่สามารถอ่านข้อมูลได้")
+    
+    print("\n4. ยกเลิกการบันทึก")
+    
+    while True:
+        choice = input("\nเลือกสล็อตเซฟ (1-4): ")
+        
+        if choice == "4":
+            print(f"{Colors.YELLOW}ยกเลิกการบันทึก{Colors.END}")
+            return False
+        
+        try:
+            slot = int(choice) - 1
+            if 0 <= slot <= 2:
+                # เตรียมข้อมูลที่จะบันทึก
+                save_data = {
+                    "player": {
+                        "name": player.name,
+                        "race": player.race,
+                        "char_class": player.char_class,
+                        "max_hp": player.max_hp,
+                        "hp": player.hp,
+                        "base_damage": player.base_damage,
+                        "armor": player.armor,
+                        "gold": player.gold,
+                        "exp": player.exp,
+                        "level": player.level,
+                        "inventory": player.inventory,
+                        "status_effects": player.status_effects
+                    },
+                    "game_stats": {
+                        "enemies_defeated": enemies_defeated,
+                        "save_timestamp": time.time()
+                    }
+                }
+                with open(f"save{slot}.json", "w", encoding='utf-8') as f:
+                    json.dump(save_data, f, ensure_ascii=False, indent=2)
+                
+                print(f"{Colors.GREEN}บันทึกเกมสำเร็จในสล็อต {slot+1}!{Colors.END}")
+                input(f"\n{Colors.YELLOW}กด Enter เพื่อกลับไป...{Colors.END}")
+                return True
+            else:
+                print(f"{Colors.RED}โปรดเลือกสล็อต 1-3 หรือ 4 เพื่อยกเลิก{Colors.END}")
+        except ValueError:
+            print(f"{Colors.RED}โปรดป้อนตัวเลขที่ถูกต้อง{Colors.END}")
+
+def load_game():
+    """โหลดเกมจากไฟล์เซฟ"""
+    clear_screen()
+    print(f"{Colors.BOLD}=== โหลดเกม ==={Colors.END}")
+    
+    save_slots = get_save_slots()
+    
+    if not save_slots:
+        print(f"{Colors.RED}ไม่พบไฟล์เซฟเกม{Colors.END}")
+        input(f"\n{Colors.YELLOW}กด Enter เพื่อกลับไป...{Colors.END}")
+        return None, 0
+    
+    print(f"\n{Colors.CYAN}สล็อตเซฟที่มีอยู่:{Colors.END}")
+    for slot in save_slots:
+        try:
+            with open(f"save{slot}.json", "r", encoding='utf-8') as f:
+                data = json.load(f)
+                timestamp = data['game_stats']['save_timestamp']
+                save_time = time.strftime("%Y-%m-%d %H:%M:%S", time.localtime(timestamp))
+                print(f"{slot+1}. เซฟสล็อต {slot+1}: {data['player']['name']} (ระดับ {data['player']['level']}) - {save_time}")
+        except:
+            print(f"{slot+1}. เซฟสล็อต {slot+1}: ไม่สามารถอ่านข้อมูลได้")
+    
+    print(f"\n{len(save_slots)+1}. ยกเลิกการโหลด")
+    
+    while True:
+        try:
+            choice = int(input("\nเลือกสล็อตเซฟที่จะโหลด: "))
+            
+            if choice == len(save_slots) + 1:
+                print(f"{Colors.YELLOW}ยกเลิกการโหลด{Colors.END}")
+                return None, 0
+            
+            slot = choice - 1
+            if slot in save_slots:
+                try:
+                    with open(f"save{slot}.json", "r", encoding='utf-8') as f:
+                        data = json.load(f)
+                    
+                    player_data = data['player']
+                    player = Character(
+                        player_data['name'], 
+                        player_data['race'], 
+                        player_data['char_class']
+                    )
+
+                    player.max_hp = player_data['max_hp']
+                    player.hp = player_data['hp']
+                    player.base_damage = player_data['base_damage']
+                    player.armor = player_data['armor']
+                    player.gold = player_data['gold']
+                    player.exp = player_data['exp']
+                    player.level = player_data['level']
+                    player.inventory = player_data['inventory']
+                    player.status_effects = player_data['status_effects']
+                    
+                    enemies_defeated = data['game_stats']['enemies_defeated']
+                    
+                    print(f"{Colors.GREEN}โหลดเกมสำเร็จ!{Colors.END}")
+                    print(f"ยินดีต้อนรับกลับ {player.name} ระดับ {player.level}")
+                    
+                    input(f"\n{Colors.YELLOW}กด Enter เพื่อเริ่มการผจญภัยต่อ...{Colors.END}")
+                    return player, enemies_defeated
+                    
+                except Exception as e:
+                    print(f"{Colors.RED}เกิดข้อผิดพลาดในการโหลด: {e}{Colors.END}")
+                    return None, 0
+            else:
+                print(f"{Colors.RED}สล็อตที่เลือกไม่มีไฟล์เซฟ{Colors.END}")
+        except ValueError:
+            print(f"{Colors.RED}โปรดป้อนตัวเลขที่ถูกต้อง{Colors.END}")
+
 # โหลดข้อมูลจาก JSON (ถ้ามี)
 def load_data():
     """โหลดข้อมูลมอนสเตอร์และไอเทม"""
@@ -94,7 +241,7 @@ def load_data():
             "hp": 35,
             "min_dmg": 3,
             "max_dmg": 10,
-            "description": "ร่างเน่าเปื่อยที่ยังเคลื่อนไหวได้และมีหนอนไต่ออก",
+            "description": "ร่างเน่าเปื่อยที่ยังเคลื่อนไหวได้และมีหนอนไต่",
             "gore_texts": {
                 "crit_hit": [
                     "คุณฟันร่างเนโครไฟล์เป็นสองท่อน หนอนนับร้อยร่วงหล่นดิ้นไปทั่ว",
@@ -675,19 +822,26 @@ def main():
     
     # สร้างหรือโหลดตัวละคร
     print("\n1. สร้างตัวละครใหม่")
-    print("2. โหลดตัวละคร (ยังไม่พร้อม)")
+    print("2. โหลดตัวละคร")
     print("3. ออกจากเกม")
     
     start_choice = input("เลือก: ")
     
     if start_choice == "1":
         player = create_character()
+        enemies_defeated = 0 
+    elif start_choice == "2":
+        player, enemies_defeated = load_game()
+    if player is None:  # ถ้าโหลดไม่สำเร็จ
+        player = create_character()
+        enemies_defeated = 0
     elif start_choice == "3":
         return
     else:
-        print("เริ่มเกมใหม่แทน...")
+        print("เริ่มเกมใหม่")
         player = create_character()
-    
+        enemies_defeated = 0
+
     # เริ่มเกมหลัก
     game_active = True
     enemies_defeated = 0
@@ -703,7 +857,7 @@ def main():
         print("1. สำรวจดันเจี้ยน")
         print("2. หาร้านค้า")
         print("3. พักผ่อน (ฟื้นฟู HP)")
-        print("4. บันทึกเกม (ยังไม่พร้อม)")
+        print("4. บันทึกเกม")
         print("5. ออกจากเกม")
         
         choice = input("เลือก: ")
