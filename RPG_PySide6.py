@@ -9,9 +9,6 @@ from PySide6.QtWidgets import (QApplication, QMainWindow, QWidget, QVBoxLayout,
 from PySide6.QtGui import QFont, QTextCursor, QColor
 from PySide6.QtCore import Qt, Signal, QObject
 
-# ==========================================
-# ส่วนจัดการ GUI Bridge (Signal & Slot)
-# ==========================================
 class GameSignals(QObject):
     print_signal = Signal(str, str)
     clear_signal = Signal()
@@ -19,10 +16,10 @@ class GameSignals(QObject):
 
 signals = GameSignals()
 
-# ตัวแปร Global เพื่ออ้างอิง App
+# ตัวแปร Global
 app_instance = None
 
-# ฟังก์ชัน Helper สำหรับ Game Logic เรียกใช้
+# ฟังก์ชัน Helper สำหรับ Game Logic
 def log(text, color="#ecf0f1"):
     """พิมพ์ข้อความลง GUI"""
     signals.print_signal.emit(str(text), color)
@@ -30,7 +27,7 @@ def log(text, color="#ecf0f1"):
 def ask(prompt=""):
     """ขอ Input จาก GUI"""
     if prompt:
-        log(f"\n{prompt}", "#3498db") # สีฟ้าสำหรับ Prompt
+        log(f"\n{prompt}", "#3498db")
     if app_instance:
         return app_instance.wait_for_input()
     return ""
@@ -43,7 +40,7 @@ def clear_screen():
 # Game Logic & Data
 # ==========================================
 class Colors:
-    # เก็บเป็น Hex Code แทน ANSI Code เดิม
+    # เก็บเป็น Hex Code แทน ANSI Code
     RED = "#e74c3c"
     GREEN = "#2ecc71"
     YELLOW = "#f1c40f"
@@ -98,13 +95,11 @@ class Character:
 
         self.hp = self.max_hp
 
-    # --- ฟังก์ชันที่คุณต้องการ ---
     def show_stats(self):
         log("═" * 30, "#555")
         log(f"👤 ชื่อ: {self.name} | Lv: {self.level}", "#f1c40f")
         log(f"❤️ HP: {self.hp}/{self.max_hp} | 💰 Gold: {self.gold}", "#e74c3c")
         log("═" * 30, "#555")
-    # -------------------------
 
     def take_damage(self, damage):
         actual_damage = max(1, damage - self.armor)
@@ -177,7 +172,7 @@ def run_rpg_game():
             if roll_dice(20) > 10:
                 # เจอศัตรู
                 m_key = random.choice(list(monsters.keys()))
-                monster = monsters[m_key].copy() # Copy มาเพื่อไม่ให้แก้ค่าต้นฉบับ
+                monster = monsters[m_key].copy()
                 
                 log(f"\n⚠️ พบ {monster['name']}! {monster['description']}", Colors.RED)
                 
@@ -331,3 +326,4 @@ if __name__ == "__main__":
     window = ModernTerminal()
     window.show()
     sys.exit(app.exec())
+
